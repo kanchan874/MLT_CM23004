@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ML Lab Assignment 3</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            padding: 20px;
+        }
+        h2 {
+            color: #333;
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input[type="number"] {
+            padding: 8px;
+            width: 100px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #2196F3;
+            color: white;
+        }
+        td.green {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>3. Predict Unseen Inputs & Compare Results</h2>
+    <p>Learned Model: <strong>y = 3.49x + 3.21</strong></p>
+
+    <input type="number" id="inputX" placeholder="Enter X">
+    <button onclick="predictValue()">Predict</button>
+
+    <table id="resultTable">
+        <thead>
+        <tr>
+            <th>Input (X)</th>
+            <th>Expected</th>
+            <th>Predicted</th>
+            <th>Error (%)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Rows will be added here -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Learned model coefficients
+    const slope = 3.49;
+    const intercept = 3.21;
+
+    // Sample data (you can replace with your own expected values)
+    const dataset = [
+        {x: 6, expected: 23},
+        {x: 21, expected: 68},
+        {x: 115, expected: 350}
+    ];
+
+    function predict(x) {
+        return slope * x + intercept;
+    }
+
+    function calculateError(predicted, expected) {
+        return ((Math.abs(predicted - expected) / expected) * 100).toFixed(2);
+    }
+
+    function renderTable() {
+        const tbody = document.querySelector("#resultTable tbody");
+        tbody.innerHTML = "";
+        dataset.forEach(data => {
+            const predicted = predict(data.x);
+            const error = calculateError(predicted, data.expected);
+            const row = `
+                <tr>
+                    <td>${data.x}</td>
+                    <td>${data.expected.toFixed(2)}</td>
+                    <td class="green">${predicted.toFixed(2)}</td>
+                    <td>${error}%</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+            console.log(`x=${data.x}, expected=${data.expected}, predicted=${predicted.toFixed(2)}`);
+        });
+    }
+
+    function predictValue() {
+        const inputX = parseFloat(document.getElementById("inputX").value);
+        if (!isNaN(inputX)) {
+            const predicted = predict(inputX);
+            alert(`For X=${inputX}, Predicted Y=${predicted.toFixed(2)}`);
+        }
+    }
+
+    // Initial render
+    renderTable();
+</script>
+</body>
+</html>
