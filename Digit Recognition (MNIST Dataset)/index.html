@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MNIST Digit Recognition</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0/dist/tf.min.js"></script>
+  <style>
+    body { text-align: center; font-family: Arial; }
+    canvas { border: 2px solid black; cursor: crosshair; }
+    #controls { margin-top: 10px; }
+    #status { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>MNIST Digit Recognition Using CNN</h1>
+<p id="status">Loading model...</p>
+
+<canvas id="canvas" width="280" height="280"></canvas>
+
+<div id="controls">
+  <button onclick="clearCanvas()">Clear</button>
+  <button onclick="predictDigit()">Predict</button>
+</div>
+
+<h2 id="prediction"></h2>
+
+<script>
+/* ---------------- Canvas Setup ---------------- */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+ctx.fillStyle = "black";
+ctx.fillRect(0, 0, 280, 280);
+ctx.strokeStyle = "white";
+ctx.lineWidth = 20;
+ctx.lineCap = "round";
+
+let drawing = false;
+
+canvas.addEventListener("mousedown", () => drawing = true);
+canvas.addEventListener("mouseup", () => {
+  drawing = false;
+  ctx.beginPath();
+});
+canvas.addEventListener("mousemove", draw);
+
+function draw(e) {
+  if (!drawing) return;
+  ctx.lineTo(e.offsetX, e.offsetY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(e.offsetX, e.offsetY);
+}
+
+function clearCanvas() {
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, 280, 280);
+  ctx.beginPath();
+  document.getElementById("prediction").innerText = "";
+}
+
+/* ---------------- Model Loading ---------------- */
+let model = null;
+
+async function loadModel() {
+  model = await tf.loadLayersModel(
+    "https://storage.googleapis.com/tfjs-models/tfjs/mnist_cnn/model.json"
+  );
+  document.getElementById("status").innerText = "Model loaded successfully ✅";
+}
+
+loadModel();
+
+/* ---------------- Preprocessing ---------------- */
+function preprocessCanvas() {
+  const imageData = ctx.getImageData(0, 0, 280, 280);
+
+  let tensor = tf.browser.fromPixels(imageData, 1)
+    .toFloat()
+    .div(255.0);
+
+  // Invert colors
+  tensor = tf.sub(1, tensor);
+
+  // Resize to MNIST size
+  tensor = tf.image.resizeBilinear(tensor.expandDims(-1), [28, 28]);
+
+  // Add batch dimension
+  return tensor.reshape([1, 28, 28, 1]);
+}
+
+/* ---------------- Prediction ---------------- */
+function predictDigit() {
+  if (!model) {
+    alert("Model is still loading. Please wait.");
+    return;
+  }
+
+  const input = preprocessCanvas();
+  const prediction = model.predict(input);
+  const digit = prediction.argMax(1).dataSync()[0];
+
+  document.getElementById("prediction").innerText =
+    "Predicted Digit: " + digit;
+}
+</script>
+
+</body>
+</html>
