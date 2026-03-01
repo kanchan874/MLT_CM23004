@@ -1,98 +1,96 @@
-let denseModel;
-let rnnModel;
-let predictionChart;
+let chart;
 
-// Small dataset
-const sentences = [
-  "I love this movie",
-  "This is fantastic",
-  "Amazing experience",
-  "I hate this",
-  "This is terrible",
-  "Worst movie ever"
-];
+// Simple keyword-based probability model
+function analyzeText(text) {
 
-const labels = [1,1,1,0,0,0];
+    text = text.toLowerCase();
 
-// Convert text to simple numeric feature
-function encode(text) {
-  return text.length;
-}
+    let positiveWords = ["love", "amazing", "good", "great", "excellent"];
+    let negativeWords = ["hate", "worst", "bad", "terrible"];
+    let neutralWords = ["okay", "fine", "average"];
 
-async function trainModels() {
+    let posScore = 0;
+    let negScore = 0;
+    let neuScore = 0;
 
-  const xs = tf.tensor2d(sentences.map(s => [encode(s)]));
-  const ys = tf.tensor2d(labels, [labels.length,1]);
+    positiveWords.forEach(word => {
+        if (text.includes(word)) posScore++;
+    });
 
-  // Dense model
-  denseModel = tf.sequential();
-  denseModel.add(tf.layers.dense({units:8, activation:'relu', inputShape:[1]}));
-  denseModel.add(tf.layers.dense({units:1, activation:'sigmoid'}));
-  denseModel.compile({optimizer:'adam', loss:'binaryCrossentropy', metrics:['accuracy']});
+    negativeWords.forEach(word => {
+        if (text.includes(word)) negScore++;
+    });
 
-  await denseModel.fit(xs, ys, {epochs:50});
+    neutralWords.forEach(word => {
+        if (text.includes(word)) neuScore++;
+    });
 
-  // RNN model
-  rnnModel = tf.sequential();
-  rnnModel.add(tf.layers.reshape({targetShape:[1,1], inputShape:[1]}));
-  rnnModel.add(tf.layers.simpleRNN({units:8}));
-  rnnModel.add(tf.layers.dense({units:1, activation:'sigmoid'}));
-  rnnModel.compile({optimizer:'adam', loss:'binaryCrossentropy', metrics:['accuracy']});
+    let total = posScore + negScore + neuScore;
 
-  await rnnModel.fit(xs.reshape([6,1,1]), ys, {epochs:50});
-
-  createChart();
-}
-
-function createChart() {
-  const ctx = document.getElementById('predictionChart').getContext('2d');
-
-  predictionChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ['Dense Model', 'RNN Model'],
-      datasets: [{
-        label: 'Positive Probability (%)',
-        data: [0,0],
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          min: 0,
-          max: 100
-        }
-      }
+    if (total === 0) {
+        posScore = negScore = neuScore = 1;
+        total = 3;
     }
-  });
+
+    return {
+        positive: (posScore / total * 100).toFixed(2),
+        negative: (negScore / total * 100).toFixed(2),
+        neutral: (neuScore / total * 100).toFixed(2)
+    };
 }
 
-async function predict() {
+function predict() {
 
-  const text = document.getElementById("sentence").value;
-  const input = tf.tensor2d([[encode(text)]]);
+    let text = document.getElementById("inputText").value;
 
-  const densePred = denseModel.predict(input);
-  const rnnPred = rnnModel.predict(input.reshape([1,1,1]));
+    if (!text.trim()) {
+        alert("Please enter a sentence.");
+        return;
+    }
 
-  const denseValue = (await densePred.data())[0];
-  const rnnValue = (await rnnPred.data())[0];
+    let probs = analyzeText(text);
 
-  const densePercent = (denseValue * 100).toFixed(2);
-  const rnnPercent = (rnnValue * 100).toFixed(2);
+    let maxLabel = Object.keys(probs).reduce((a, b) =>
+        probs[a] > probs[b] ? a : b
+    );
 
-  document.getElementById("result").innerHTML =
-    `Dense: ${densePercent}% | RNN: ${rnnPercent}%`;
+    document.getElementById("predictionResult").innerText =
+        "Prediction: " + maxLabel.toUpperCase();
 
-  // 🔥 THIS FIX MAKES BARS VISIBLE
-  predictionChart.data.datasets[0].data = [
-    parseFloat(densePercent),
-    parseFloat(rnnPercent)
-  ];
-
-  predictionChart.update();
+    updateChart(probs);
 }
 
-// Train automatically on page load
-trainModels();
+function updateChart(probs) {
+
+    let ctx = document.getElementById('probChart').getContext('2d');
+
+    if (chart) {
+        chart.destroy();
+    }
+
+    chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Positive', 'Negative', 'Neutral'],
+            datasets: [{
+                label: 'Prediction Probability (%)',
+                data: [
+                    probs.positive,
+                    probs.negative,
+                    probs.neutral
+                ]
+            }]
+        },
+        options: {
+            animation: {
+                duration: 500
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}

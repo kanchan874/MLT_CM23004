@@ -1,80 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AI Sentiment Analyzer</title>
+    <title>Sentence Prediction Dashboard</title>
+    <meta charset="UTF-8">
+    
+    <!-- Chart.js CDN (Lightweight) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            text-align: center;
+            padding: 40px;
+        }
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        textarea {
+            width: 60%;
+            height: 100px;
+            padding: 10px;
+            font-size: 16px;
+        }
 
-  <style>
-    body {
-      font-family: Arial;
-      background: linear-gradient(135deg,#667eea,#764ba2);
-      color: white;
-      text-align: center;
-      padding: 40px;
-    }
+        button {
+            padding: 10px 20px;
+            margin-top: 15px;
+            font-size: 16px;
+            cursor: pointer;
+        }
 
-    .card {
-      background: rgba(255,255,255,0.1);
-      padding: 30px;
-      border-radius: 15px;
-      width: 800px;
-      margin: auto;
-    }
+        .result {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
 
-    input {
-      width: 80%;
-      padding: 12px;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-    }
-
-    button {
-      margin-top: 15px;
-      padding: 10px 25px;
-      border: none;
-      border-radius: 8px;
-      background: orange;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    canvas {
-      margin-top: 30px;
-      background: white;
-      border-radius: 10px;
-    }
-
-    #result {
-      margin-top: 20px;
-      font-size: 20px;
-      font-weight: bold;
-    }
-  </style>
+        canvas {
+            max-width: 500px;
+            margin: 30px auto;
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="card">
-  <h1>AI Sentiment Analyzer</h1>
-  <p>Live Prediction Probability Graph (RNN vs Dense)</p>
+    <h2>📈 Dynamic Sentence Prediction</h2>
 
-  <input id="sentence" value="This movie is amazing">
-  <br>
-  <button onclick="predict()">Analyze</button>
+    <textarea id="inputText" placeholder="Enter sentence here..."></textarea>
+    <br>
+    <button onclick="predict()">Predict</button>
 
-  <div id="result"></div>
+    <div class="result" id="predictionResult"></div>
 
-  <canvas id="predictionChart" width="600" height="300"></canvas>
-</div>
+    <canvas id="probChart"></canvas>
 
-<script src="script.js"></script>
-
+    <script src="script.js"></script>
 </body>
 </html>
