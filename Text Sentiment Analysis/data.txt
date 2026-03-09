@@ -5,3 +5,5 @@ Worst experience ever,negative
 I hate this service,negative
 It was okay,neutral
 Not bad but not great,neutral
+The product is good,positive
+Very disappointing service,negative

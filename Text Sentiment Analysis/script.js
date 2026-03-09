@@ -1,114 +1,145 @@
 let positiveWords = {};
 let negativeWords = {};
+let neutralWords = {};
+
 let totalPos = 0;
 let totalNeg = 0;
+let totalNeu = 0;
+
 let chart;
 
-// Load dataset automatically
-fetch('data.txt')
-    .then(response => response.text())
-    .then(data => trainModel(data));
+fetch("data.txt")
+.then(response => response.text())
+.then(data => trainModel(data));
 
-function trainModel(data) {
+function trainModel(data){
 
-    let lines = data.split("\n");
+let lines = data.split("\n");
+lines.shift();
 
-    lines.forEach(line => {
+lines.forEach(line=>{
 
-        let parts = line.split(",");
-        if (parts.length < 2) return;
+let parts = line.split(",");
 
-        let label = parts[0].trim().toLowerCase();
-        let text = parts[1].toLowerCase();
+if(parts.length<2) return;
 
-        let words = text.split(" ");
+let text = parts[0].toLowerCase();
+let label = parts[1].trim().toLowerCase();
 
-        words.forEach(word => {
+let words = text.split(" ");
 
-            word = word.replace(/[^a-z]/g, "");
+words.forEach(word=>{
 
-            if (!word) return;
+word = word.replace(/[^a-z]/g,"");
 
-            if (label === "positive") {
-                positiveWords[word] = (positiveWords[word] || 0) + 1;
-                totalPos++;
-            } 
-            else if (label === "negative") {
-                negativeWords[word] = (negativeWords[word] || 0) + 1;
-                totalNeg++;
-            }
-        });
-    });
+if(!word) return;
 
-    document.getElementById("status").innerText =
-        "Model trained successfully from dataset ✅";
+if(label==="positive"){
+positiveWords[word]=(positiveWords[word]||0)+1;
+totalPos++;
 }
 
-function predict() {
-
-    let text = document.getElementById("inputText").value.toLowerCase();
-    if (!text.trim()) return alert("Enter sentence first.");
-
-    let words = text.split(" ");
-
-    let posScore = 0;
-    let negScore = 0;
-
-    words.forEach(word => {
-
-        word = word.replace(/[^a-z]/g, "");
-
-        if (positiveWords[word])
-            posScore += positiveWords[word] / totalPos;
-
-        if (negativeWords[word])
-            negScore += negativeWords[word] / totalNeg;
-    });
-
-    if (posScore === 0 && negScore === 0) {
-        posScore = negScore = 0.5;
-    }
-
-    let total = posScore + negScore;
-
-    let posProb = (posScore / total * 100).toFixed(2);
-    let negProb = (negScore / total * 100).toFixed(2);
-
-    let result = posProb > negProb ? "POSITIVE 😊" : "NEGATIVE 😞";
-
-    document.getElementById("predictionResult").innerText =
-        "Prediction: " + result;
-
-    updateChart(posProb, negProb);
+else if(label==="negative"){
+negativeWords[word]=(negativeWords[word]||0)+1;
+totalNeg++;
 }
 
-function updateChart(pos, neg) {
+else if(label==="neutral"){
+neutralWords[word]=(neutralWords[word]||0)+1;
+totalNeu++;
+}
 
-    let ctx = document.getElementById('probChart').getContext('2d');
+});
 
-    if (chart) chart.destroy();
+});
 
-    chart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Positive', 'Negative'],
-            datasets: [{
-                label: 'Probability (%)',
-                data: [pos, neg],
-                backgroundColor: [
-                    '#00c853',
-                    '#d50000'
-                ]
-            }]
-        },
-        options: {
-            animation: { duration: 800 },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
-                }
-            }
-        }
-    });
+document.getElementById("status").innerText=
+"Model trained successfully from dataset ✅";
+
+}
+
+function predict(){
+
+let text=document.getElementById("inputText").value.toLowerCase();
+
+if(!text.trim()) return alert("Enter sentence first");
+
+let words=text.split(" ");
+
+let posScore=0;
+let negScore=0;
+let neuScore=0;
+
+words.forEach(word=>{
+
+word=word.replace(/[^a-z]/g,"");
+
+if(positiveWords[word])
+posScore+=positiveWords[word]/totalPos;
+
+if(negativeWords[word])
+negScore+=negativeWords[word]/totalNeg;
+
+if(neutralWords[word])
+neuScore+=neutralWords[word]/totalNeu;
+
+});
+
+let total=posScore+negScore+neuScore;
+
+if(total===0){
+posScore=negScore=neuScore=1;
+total=3;
+}
+
+let posProb=(posScore/total*100).toFixed(2);
+let negProb=(negScore/total*100).toFixed(2);
+let neuProb=(neuScore/total*100).toFixed(2);
+
+let result="NEUTRAL 😐";
+
+if(posProb>negProb && posProb>neuProb)
+result="POSITIVE 😊";
+
+else if(negProb>posProb && negProb>neuProb)
+result="NEGATIVE 😞";
+
+document.getElementById("predictionResult").innerText=
+"Prediction : "+result;
+
+updateChart(posProb,negProb,neuProb);
+
+}
+
+function updateChart(pos,neg,neu){
+
+let ctx=document.getElementById("probChart").getContext("2d");
+
+if(chart) chart.destroy();
+
+chart=new Chart(ctx,{
+type:"bar",
+data:{
+labels:["Positive","Negative","Neutral"],
+datasets:[{
+label:"Probability %",
+data:[pos,neg,neu],
+backgroundColor:[
+"#00c853",
+"#d50000",
+"#ffab00"
+]
+}]
+},
+options:{
+responsive:true,
+scales:{
+y:{
+beginAtZero:true,
+max:100
+}
+}
+}
+});
+
 }
