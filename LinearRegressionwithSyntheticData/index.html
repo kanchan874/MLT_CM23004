@@ -1,39 +1,287 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Linear Regression - TensorFlow.js</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+<meta charset="UTF-8">
+<title>Linear Regression – House Price (India)</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:linear-gradient(120deg,#2c3e50,#4ca1af);
+color:white;
+text-align:center;
+padding:30px;
+}
+
+.container{
+background:white;
+color:black;
+padding:25px;
+border-radius:10px;
+width:900px;
+margin:auto;
+box-shadow:0 10px 20px rgba(0,0,0,0.4);
+}
+
+input{
+padding:8px;
+margin:5px;
+}
+
+button{
+padding:10px 18px;
+border:none;
+border-radius:5px;
+background:#0077ff;
+color:white;
+cursor:pointer;
+}
+
+button:hover{
+background:#004bcc;
+}
+
+.result{
+background:#111;
+color:#00ff9d;
+padding:15px;
+margin-top:20px;
+border-radius:6px;
+}
+
+</style>
 </head>
+
 <body>
-  <h2>Linear Regression</h2>
 
-  <script>
-    // 1. Create synthetic data
-    const xs = tf.tensor1d([1, 2, 3, 4, 5]);
-    const ys = tf.tensor1d([2, 4, 6, 8, 10]); // y = 2x
+<div class="container">
 
-    // 2. Create model
-    const model = tf.sequential();
-    model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+<h2>AI Linear Regression</h2>
+<h3>House Size vs Price (India ₹)</h3>
 
-    // 3. Compile model
-    model.compile({
-      optimizer: 'sgd',
-      loss: 'meanSquaredError'
-    });
+Learning Rate
+<input id="lr" value="0.01">
 
-    // 4. Train model
-    async function trainModel() {
-      await model.fit(xs, ys, {
-        epochs: 200
-      });
+Epochs
+<input id="epochs" value="100">
 
-      // 5. Predict
-      const output = model.predict(tf.tensor2d([6], [1, 1]));
-      output.print();
-    }
+<button onclick="trainModel()">Train Model</button>
 
-    trainModel();
-  </script>
+<br><br>
+
+House Size (sq ft)
+
+<input id="sizeInput" placeholder="Example 1500">
+
+<button onclick="predict()">Predict Price</button>
+
+<canvas id="chart" width="800" height="400"></canvas>
+
+<div class="result" id="output"></div>
+
+</div>
+
+<script>
+
+let model
+let chart
+let minX,maxX,minY,maxY
+
+/* -------- Dataset -------- */
+
+function generateData(){
+
+let sizes=[]
+let prices=[]
+
+for(let i=600;i<=3000;i+=100){
+
+let price=i*5000 + (Math.random()*2000000-1000000)
+
+sizes.push(i)
+prices.push(price)
+
+}
+
+return {sizes,prices}
+
+}
+
+const data=generateData()
+
+/* -------- Normalization -------- */
+
+function normalize(t,min,max){
+return t.sub(min).div(max.sub(min))
+}
+
+function denormalize(t,min,max){
+return t.mul(max.sub(min)).add(min)
+}
+
+/* -------- Train Model -------- */
+
+async function trainModel(){
+
+const lr=parseFloat(document.getElementById("lr").value)
+const epochs=parseInt(document.getElementById("epochs").value)
+
+const xs=tf.tensor1d(data.sizes)
+const ys=tf.tensor1d(data.prices)
+
+minX=xs.min()
+maxX=xs.max()
+
+minY=ys.min()
+maxY=ys.max()
+
+const xsNorm=normalize(xs,minX,maxX)
+const ysNorm=normalize(ys,minY,maxY)
+
+model=tf.sequential()
+
+model.add(tf.layers.dense({
+units:1,
+inputShape:[1]
+}))
+
+model.compile({
+optimizer:tf.train.sgd(lr),
+loss:"meanSquaredError"
+})
+
+console.log("Training started")
+
+await model.fit(xsNorm,ysNorm,{
+epochs:epochs,
+callbacks:{
+onEpochEnd:(epoch,logs)=>{
+console.log("Epoch:",epoch,"Loss:",logs.loss)
+}
+}
+})
+
+console.log("Training complete")
+
+/* Predictions for regression line */
+
+const preds=model.predict(xsNorm)
+const denorm=denormalize(preds,minY,maxY)
+const predicted=Array.from(await denorm.data())
+
+drawChart(predicted)
+
+document.getElementById("output").innerHTML="Model trained successfully"
+
+}
+
+/* -------- Draw Chart -------- */
+
+function drawChart(predicted){
+
+const ctx=document.getElementById("chart")
+
+if(chart) chart.destroy()
+
+/* Actual scatter data */
+
+const actualPoints=data.sizes.map((x,i)=>({
+x:x,
+y:data.prices[i]
+}))
+
+/* Regression line data */
+
+const linePoints=data.sizes.map((x,i)=>({
+x:x,
+y:predicted[i]
+}))
+
+chart=new Chart(ctx,{
+
+data:{
+datasets:[
+
+{
+type:"scatter",
+label:"Actual Data",
+data:actualPoints,
+backgroundColor:"blue"
+},
+
+{
+type:"line",
+label:"Regression Line",
+data:linePoints,
+borderColor:"green",
+borderWidth:2,
+fill:false,
+tension:0
+}
+
+]
+},
+
+options:{
+scales:{
+x:{
+title:{display:true,text:"House Size (sq ft)"}
+},
+y:{
+title:{display:true,text:"Price (₹)"}
+}
+}
+}
+
+})
+
+}
+
+/* -------- Predict New Value -------- */
+
+async function predict(){
+
+if(!model){
+alert("Please train the model first")
+return
+}
+
+const size=parseFloat(document.getElementById("sizeInput").value)
+
+const tensor=tf.tensor1d([size])
+const norm=normalize(tensor,minX,maxX)
+
+const pred=model.predict(norm)
+const denorm=denormalize(pred,minY,maxY)
+
+const value=(await denorm.data())[0]
+
+console.log("Predicted price:",value)
+
+document.getElementById("output").innerHTML=
+
+"Predicted price for "+size+" sq ft house = ₹"+
+Math.round(value).toLocaleString("en-IN")
+
+/* Add red prediction point */
+
+chart.data.datasets.push({
+type:"scatter",
+label:"Prediction",
+data:[{x:size,y:value}],
+backgroundColor:"red",
+pointRadius:8
+})
+
+chart.update()
+
+}
+
+</script>
+
 </body>
 </html>
